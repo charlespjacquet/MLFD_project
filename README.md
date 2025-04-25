@@ -9,7 +9,7 @@ This project is part of the **Machine Learning for Fluid Dynamics (MLFD)** cours
 at the **von Karman Institute for Fluid Dynamics**, within the  
 🌬️ **Environmental and Applied Fluid Dynamics Department**.
 
-The main goal is to reconstruct the flow field behind a floating wind turbine  
+The main goal of this project is to reconstruct the flow field behind a floating wind turbine  
 based on experimental PIV data, using **Radial Basis Functions (RBFs)**.
 
 ---
@@ -30,7 +30,7 @@ This code allows you to:
 ## 📚 Documentation
 
 Full code documentation is available here:  
-👉 [https://mlfd.readthedocs.io/en/latest/](https://mlfd.readthedocs.io/en/latest/)
+👉 [https://mlfd-project.readthedocs.io/en/latest/](https://mlfd-project.readthedocs.io/en/latest/)
 
 ---
 
@@ -42,10 +42,11 @@ Full code documentation is available here:
 
 ---
 
-## 🛠️ Technologies
+## 🛠️ Requirements
 
 - Python 3.9  
+- Numpy 3.1
+- Scipy  1.13.1
+- Matplotlib  1.13.1
 - Sphinx + AutoAPI for documentation  
-- RBF interpolation for spatial field reconstruction
-
 ---
