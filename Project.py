@@ -10,10 +10,6 @@ from tqdm import tqdm
 
 PATH = r"C:\Users\charl\OneDrive\VKI\Research_Project\TEST_CAMPAIGN_1\Grouped_images\L2B_24022025_3_pitch_85_5_1_GROUPIMAGE_UP\split_images\filtered\out_PaIRS"
 
-
-
-
-
 # --- Gaussian RBF and its derivatives ---
 def rbf_2d_gaussian(x, y, xc, yc, epsilon):
     """
@@ -38,15 +34,55 @@ def rbf_2d_gaussian(x, y, xc, yc, epsilon):
 
 def drbf_dx(x, y, xc, yc, epsilon):
     """
-    Derivative of the 2D Gaussian RBF with respect to x.
+    Computes the partial derivative of a 2D Gaussian radial basis function (RBF) 
+    with respect to the x-coordinate.
+
+    Parameters
+    ----------
+    x : array_like
+        x-coordinates at which to evaluate the derivative.
+    y : array_like
+        y-coordinates (paired with x) used for RBF evaluation.
+    xc : float
+        x-coordinate of the RBF center.
+    yc : float
+        y-coordinate of the RBF center.
+    epsilon : float
+        Shape parameter of the Gaussian RBF controlling the spread.
+
+    Returns
+    -------
+    array_like
+        Values of the partial derivative ∂ϕ/∂x evaluated at each (x, y) point.
     """
     return -2 * epsilon**2 * (x - xc) * rbf_2d_gaussian(x, y, xc, yc, epsilon)
 
+
 def drbf_dy(x, y, xc, yc, epsilon):
     """
-    Derivative of the 2D Gaussian RBF with respect to y.
+    Computes the partial derivative of a 2D Gaussian radial basis function (RBF) 
+    with respect to the y-coordinate.
+
+    Parameters
+    ----------
+    x : array_like
+        x-coordinates (paired with y) used for RBF evaluation.
+    y : array_like
+        y-coordinates at which to evaluate the derivative.
+    xc : float
+        x-coordinate of the RBF center.
+    yc : float
+        y-coordinate of the RBF center.
+    epsilon : float
+        Shape parameter of the Gaussian RBF controlling the spread.
+
+    Returns
+    -------
+    array_like
+        Values of the partial derivative ∂ϕ/∂y evaluated at each (x, y) point.
     """
     return -2 * epsilon**2 * (y - yc) * rbf_2d_gaussian(x, y, xc, yc, epsilon)
+
 
 # --- Load and average a single PIV case ---
 def process_piv_case(folder_path):
