@@ -1,0 +1,179 @@
+Project
+=======
+
+.. py:module:: Project
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   Project.PATH
+   Project.folder_list
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   Project.rbf_2d_gaussian
+   Project.drbf_dx
+   Project.drbf_dy
+   Project.process_piv_case
+   Project.process_selected_cases
+   Project.rbf_interpolate_velocity_magnitude
+   Project.rbf_interpolate_vorticity
+
+
+Module Contents
+---------------
+
+.. py:data:: PATH
+   :value: 'C:\\Users\\charl\\OneDrive\\VKI\\Research_Project\\TEST_CAMPAIGN_1\\Grouped_images\\L2B_24022025...
+
+
+.. py:function:: rbf_2d_gaussian(x, y, xc, yc, epsilon)
+
+   Gaussian radial basis function in 2D.
+
+   Parameters
+   ----------
+   x, y : array_like
+       Evaluation coordinates.
+   xc, yc : float
+       Center of the RBF.
+   epsilon : float
+       Shape parameter controlling the width.
+
+   Returns
+   -------
+   array_like
+       RBF values at each (x, y).
+
+
+.. py:function:: drbf_dx(x, y, xc, yc, epsilon)
+
+   Computes the partial derivative of a 2D Gaussian radial basis function (RBF) 
+   with respect to the x-coordinate.
+
+   Parameters
+   ----------
+   x : array_like
+       x-coordinates at which to evaluate the derivative.
+   y : array_like
+       y-coordinates (paired with x) used for RBF evaluation.
+   xc : float
+       x-coordinate of the RBF center.
+   yc : float
+       y-coordinate of the RBF center.
+   epsilon : float
+       Shape parameter of the Gaussian RBF controlling the spread.
+
+   Returns
+   -------
+   array_like
+       Values of the partial derivative ∂ϕ/∂x evaluated at each (x, y) point.
+
+
+.. py:function:: drbf_dy(x, y, xc, yc, epsilon)
+
+   Computes the partial derivative of a 2D Gaussian radial basis function (RBF) 
+   with respect to the y-coordinate.
+
+   Parameters
+   ----------
+   x : array_like
+       x-coordinates (paired with y) used for RBF evaluation.
+   y : array_like
+       y-coordinates at which to evaluate the derivative.
+   xc : float
+       x-coordinate of the RBF center.
+   yc : float
+       y-coordinate of the RBF center.
+   epsilon : float
+       Shape parameter of the Gaussian RBF controlling the spread.
+
+   Returns
+   -------
+   array_like
+       Values of the partial derivative ∂ϕ/∂y evaluated at each (x, y) point.
+
+
+.. py:function:: process_piv_case(folder_path)
+
+   Process and average all .mat files in a folder for a single PIV case.
+
+   Parameters
+   ----------
+   folder_path : str
+       Path to the folder containing .mat files.
+
+   Returns
+   -------
+   dict
+       Dictionary with fields x, y, mean velocity components, magnitude, etc.
+
+
+.. py:function:: process_selected_cases(folder_paths)
+
+   Load and process multiple PIV cases.
+
+   Parameters
+   ----------
+   folder_paths : list of str
+       Paths to the folders containing PIV .mat data.
+
+   Returns
+   -------
+   dict
+       Dictionary mapping each case to its processed data.
+
+
+.. py:function:: rbf_interpolate_velocity_magnitude(all_results, epsilon=20.0, alpha=1e-06, n_grid=200, subsample_step=5)
+
+   Interpolates the mean velocity magnitude field using RBF interpolation.
+
+   Parameters
+   ----------
+   all_results : dict
+       Dictionary of processed PIV cases.
+   epsilon : float
+       Shape parameter of the Gaussian RBF.
+   alpha : float
+       Regularization parameter for solving the linear system.
+   n_grid : int
+       Resolution of the interpolation grid.
+   subsample_step : int
+       Subsampling step for RBF centers.
+
+   Returns
+   -------
+   None
+
+
+.. py:function:: rbf_interpolate_vorticity(all_results, epsilon=20.0, alpha=1e-06, n_grid=200, subsample_step=5)
+
+   Interpolates the vorticity field using RBF and analytical derivatives.
+
+   Parameters
+   ----------
+   all_results : dict
+       Dictionary of processed PIV cases.
+   epsilon : float
+       Shape parameter of the Gaussian RBF.
+   alpha : float
+       Regularization parameter for solving the linear system.
+   n_grid : int
+       Resolution of the interpolation grid.
+   subsample_step : int
+       Subsampling step for RBF centers.
+
+   Returns
+   -------
+   None
+
+
+.. py:data:: folder_list
+

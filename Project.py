@@ -1,3 +1,9 @@
+"""
+Created on Monday Apr 21 21:04:22 2025
+
+@author: Charles Jacquet
+"""
+
 # === RBF-based velocity magnitude and vorticity interpolation ===
 # Includes separated functions for velocity and vorticity interpolation using RBFs.
 
@@ -5,134 +11,131 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import scipy.io
+import matplotlib as mpl
 from tqdm import tqdm
 
+# Set LaTeX rendering and fontsize globally
+mpl.rcParams['text.usetex'] = True
+mpl.rcParams['font.size'] = 18
+mpl.rcParams['axes.labelsize'] = 18
+mpl.rcParams['axes.titlesize'] = 18
+mpl.rcParams['xtick.labelsize'] = 18
+mpl.rcParams['ytick.labelsize'] = 18
+mpl.rcParams['legend.fontsize'] = 18
 
-PATH = r"C:\Users\charl\OneDrive\VKI\Research_Project\TEST_CAMPAIGN_1\Grouped_images\L2B_24022025_3_pitch_85_5_1_GROUPIMAGE_UP\split_images\filtered\out_PaIRS"
+PATH = r"C:\\Users\\charl\\OneDrive\\VKI\\Research_Project\\TEST_CAMPAIGN_1\\Grouped_images\\L2B_24022025_3_pitch_85_5_1_GROUPIMAGE_UP\\split_images\\filtered\\out_PaIRS"
 
 # --- Gaussian RBF and its derivatives ---
 def rbf_2d_gaussian(x, y, xc, yc, epsilon):
     """
-    Gaussian radial basis function in 2D.
+    Compute the 2D Gaussian Radial Basis Function (RBF).
 
     Parameters
     ----------
     x, y : array_like
-        Evaluation coordinates.
+        Coordinates where the RBF is evaluated.
     xc, yc : float
         Center of the RBF.
     epsilon : float
-        Shape parameter controlling the width.
+        Shape parameter controlling the spread of the RBF.
 
     Returns
     -------
     array_like
-        RBF values at each (x, y).
+        Evaluated RBF values at (x, y).
     """
     r2 = (x - xc)**2 + (y - yc)**2
     return np.exp(-epsilon**2 * r2)
 
 def drbf_dx(x, y, xc, yc, epsilon):
     """
-    Computes the partial derivative of a 2D Gaussian radial basis function (RBF) 
-    with respect to the x-coordinate.
+    Compute the partial derivative of the 2D Gaussian RBF with respect to x.
 
     Parameters
     ----------
-    x : array_like
-        x-coordinates at which to evaluate the derivative.
-    y : array_like
-        y-coordinates (paired with x) used for RBF evaluation.
-    xc : float
-        x-coordinate of the RBF center.
-    yc : float
-        y-coordinate of the RBF center.
+    x, y : array_like
+        Coordinates where the derivative is evaluated.
+    xc, yc : float
+        Center of the RBF.
     epsilon : float
-        Shape parameter of the Gaussian RBF controlling the spread.
+        Shape parameter controlling the spread of the RBF.
 
     Returns
     -------
     array_like
-        Values of the partial derivative ∂ϕ/∂x evaluated at each (x, y) point.
+        Evaluated partial derivative with respect to x.
     """
     return -2 * epsilon**2 * (x - xc) * rbf_2d_gaussian(x, y, xc, yc, epsilon)
 
-
 def drbf_dy(x, y, xc, yc, epsilon):
     """
-    Computes the partial derivative of a 2D Gaussian radial basis function (RBF) 
-    with respect to the y-coordinate.
+    Compute the partial derivative of the 2D Gaussian RBF with respect to y.
 
     Parameters
     ----------
-    x : array_like
-        x-coordinates (paired with y) used for RBF evaluation.
-    y : array_like
-        y-coordinates at which to evaluate the derivative.
-    xc : float
-        x-coordinate of the RBF center.
-    yc : float
-        y-coordinate of the RBF center.
+    x, y : array_like
+        Coordinates where the derivative is evaluated.
+    xc, yc : float
+        Center of the RBF.
     epsilon : float
-        Shape parameter of the Gaussian RBF controlling the spread.
+        Shape parameter controlling the spread of the RBF.
 
     Returns
     -------
     array_like
-        Values of the partial derivative ∂ϕ/∂y evaluated at each (x, y) point.
+        Evaluated partial derivative with respect to y.
     """
     return -2 * epsilon**2 * (y - yc) * rbf_2d_gaussian(x, y, xc, yc, epsilon)
-
 
 # --- Load and average a single PIV case ---
 def process_piv_case(folder_path):
     """
-    Process and average all .mat files in a folder for a single PIV case.
+    Process and average all .mat files in a folder corresponding to one PIV case.
 
     Parameters
     ----------
     folder_path : str
-        Path to the folder containing .mat files.
+        Path to the folder containing .mat files for a single case.
 
     Returns
     -------
     dict
-        Dictionary with fields x, y, mean velocity components, magnitude, etc.
+        Dictionary with averaged fields: 'x', 'y', 'Mag', 'Umean', 'Vmean', 'SN'.
     """
     SN = Mag = Umean = Vmean = None
     countImg = 0
-
+    
     mat_files = [f for f in os.listdir(folder_path) if f.endswith('.mat') and f != 'out.mat']
     mat_files.sort(key=lambda f: int(''.join(filter(str.isdigit, f.split('_')[1]))))
-
+    
     print(f"Processing folder: {folder_path} with {len(mat_files)} files...")
-
+    
     for filename in tqdm(mat_files, desc=f"Processing {os.path.basename(folder_path)}"):
         file_path = os.path.join(folder_path, filename)
         mat_data = scipy.io.loadmat(file_path)
         U, V = mat_data['U'], mat_data['V']
         x, y = mat_data['x'], mat_data['y']
         sn = mat_data['SN']
-
+    
         if countImg == 0:
             nx, ny = U.shape
             SN = np.zeros((nx, ny))
             Mag = np.zeros((nx, ny))
             Umean = np.zeros((nx, ny))
             Vmean = np.zeros((nx, ny))
-
+    
         Mag += np.sqrt(U**2 + V**2)
         Umean += U
         Vmean += V
         SN += sn
-
+    
         countImg += 1
-
+    
     Mag /= countImg
     Umean /= countImg
     Vmean /= countImg
     SN /= countImg
-
+    
     return {
         "folder": folder_path,
         "x": x,
@@ -146,17 +149,17 @@ def process_piv_case(folder_path):
 # --- Load and process multiple PIV cases ---
 def process_selected_cases(folder_paths):
     """
-    Load and process multiple PIV cases.
+    Process multiple PIV cases.
 
     Parameters
     ----------
     folder_paths : list of str
-        Paths to the folders containing PIV .mat data.
+        List of paths to folders containing .mat files.
 
     Returns
     -------
     dict
-        Dictionary mapping each case to its processed data.
+        Dictionary mapping case names to their processed results.
     """
     results_dict = {}
     for folder_path in folder_paths:
@@ -169,20 +172,20 @@ def process_selected_cases(folder_paths):
 # --- Interpolate velocity magnitude only ---
 def rbf_interpolate_velocity_magnitude(all_results, epsilon=20.0, alpha=1e-6, n_grid=200, subsample_step=5):
     """
-    Interpolates the mean velocity magnitude field using RBF interpolation.
+    Perform RBF interpolation of the mean velocity magnitude field.
 
     Parameters
     ----------
     all_results : dict
-        Dictionary of processed PIV cases.
-    epsilon : float
-        Shape parameter of the Gaussian RBF.
-    alpha : float
-        Regularization parameter for solving the linear system.
-    n_grid : int
-        Resolution of the interpolation grid.
-    subsample_step : int
-        Subsampling step for RBF centers.
+        Dictionary of processed cases.
+    epsilon : float, optional
+        Shape parameter of the Gaussian RBF. Default is 20.0.
+    alpha : float, optional
+        Regularization parameter. Default is 1e-6.
+    n_grid : int, optional
+        Grid resolution for interpolation. Default is 200.
+    subsample_step : int, optional
+        Step size for subsampling RBF centers. Default is 5.
 
     Returns
     -------
@@ -230,45 +233,47 @@ def rbf_interpolate_velocity_magnitude(all_results, epsilon=20.0, alpha=1e-6, n_
     MAG_interp_grid = np.sqrt(U_interp**2 + V_interp**2).reshape(XI.shape)
     XI_phys = 0.5 * (XI + 1) * (x_max - x_min) + x_min
     YI_phys = 0.5 * (YI + 1) * (y_max - y_min) + y_min
-
-    x_origin = 150
-    y_origin = 57
-    z_hub = 160
-    D = 150
+    
+    # PIV calibration data
+    x_origin = 150 #[mm]
+    y_origin = 57 #[mm]
+    z_hub = 160 #[mm]
+    D = 150 # [mm]
     XI_corr = (XI_phys + x_origin) / D
     YI_corr = (y_origin + (y_max - YI_phys)) / z_hub
 
     plt.figure(figsize=(8, 6))
     plt.contourf(XI_corr, YI_corr, MAG_interp_grid / np.max(MAG_interp_grid), 100, cmap='jet')
-    plt.colorbar(label=r"$U/\bar{u}_{hub}$ [-]")
-    plt.title(f'Interpolated Velocity Magnitude (ε={epsilon}, α={alpha})')
-    plt.xlabel(r"$x/D$")
-    plt.ylabel(r"$z/z_{hub}$")
+    plt.colorbar(label=r"$U/\bar{U}_{hub}$ [-]")
+    plt.title(rf'Interpolated Velocity Magnitude Field ($\varepsilon={epsilon}$, $\alpha={alpha}$)')
+    plt.xlabel(r"$x/D [-]$")
+    plt.ylabel(r"$z/z_{hub} [-]$")
     plt.axis('equal')
     plt.tight_layout()
     filename = f"velocity_mag_eps{epsilon}_alpha{alpha}.png"
     plt.savefig(filename)
     print(f"Velocity magnitude figure saved as {filename}")
-    #plt.close()
+    plt.close()
 
 # --- Interpolate vorticity only ---
 def rbf_interpolate_vorticity(all_results, epsilon=20.0, alpha=1e-6, n_grid=200, subsample_step=5):
+    
     """
-    Interpolates the vorticity field using RBF and analytical derivatives.
-
+    Perform RBF interpolation of the vorticity field based on mean velocity components.
+    
     Parameters
     ----------
     all_results : dict
-        Dictionary of processed PIV cases.
-    epsilon : float
-        Shape parameter of the Gaussian RBF.
-    alpha : float
-        Regularization parameter for solving the linear system.
-    n_grid : int
-        Resolution of the interpolation grid.
-    subsample_step : int
-        Subsampling step for RBF centers.
-
+        Dictionary of processed cases.
+    epsilon : float, optional
+        Shape parameter of the Gaussian RBF. Default is 20.0.
+    alpha : float, optional
+        Regularization parameter. Default is 1e-6.
+    n_grid : int, optional
+        Grid resolution for interpolation. Default is 200.
+    subsample_step : int, optional
+        Step size for subsampling RBF centers. Default is 5.
+    
     Returns
     -------
     None
@@ -317,38 +322,42 @@ def rbf_interpolate_vorticity(all_results, epsilon=20.0, alpha=1e-6, n_grid=200,
     XI_phys = 0.5 * (XI + 1) * (x_max - x_min) + x_min
     YI_phys = 0.5 * (YI + 1) * (y_max - y_min) + y_min
 
-    x_origin = 150
-    y_origin = 57
-    z_hub = 160
-    D = 150
+    # PIV calibration data
+    x_origin = 150  #[mm]
+    y_origin = 57 #[mm]
+    z_hub = 160 #[mm]
+    D = 150 #[mm]
     XI_corr = (XI_phys + x_origin) / D
     YI_corr = (y_origin + (y_max - YI_phys)) / z_hub
 
+    U_hub = 9.2  # velocity at hub
+    VORT_interp_grid_normalized = (VORT_interp_grid * D*1e-3) / U_hub
+
     plt.figure(figsize=(8, 6))
-    plt.contourf(XI_corr, YI_corr, VORT_interp_grid, 100, cmap='seismic')
-    plt.colorbar(label=r"Vorticity [1/s]")
-    plt.title(f'Interpolated Vorticity Field (ε={epsilon}, α={alpha})')
-    plt.xlabel(r"$x/D$")
-    plt.ylabel(r"$z/z_{hub}$")
+    plt.contourf(XI_corr, YI_corr, VORT_interp_grid_normalized, 100, cmap='seismic')
+    cbar = plt.colorbar(label=r"$\omega^* = \omega D/\bar{U}_{hub}$ [-]")
+    plt.title(rf'Interpolated Vorticity Field ($\varepsilon={epsilon}$, $\alpha={alpha}$)')
+    plt.xlabel(r"$x/D [-]$")
+    plt.ylabel(r"$z/z_{hub} [-]$")
     plt.axis('equal')
     plt.tight_layout()
     filename = f"vorticity_eps{epsilon}_alpha{alpha}.png"
     plt.savefig(filename)
     print(f"Vorticity figure saved as {filename}")
-    #plt.close()
+    plt.close()
 
 # === MAIN ===
 if __name__ == "__main__":
     folder_list = [PATH]
 
     all_results = process_selected_cases(folder_list)
-    rbf_interpolate_velocity_magnitude(all_results, epsilon=20, alpha=1e-6)
-    rbf_interpolate_vorticity(all_results, epsilon=15, alpha=1e-6)
+    rbf_interpolate_velocity_magnitude(all_results, epsilon=10, alpha=0.01)
+    rbf_interpolate_vorticity(all_results, epsilon=10, alpha=0.01)
 
-    param_study = 0
+    param_study = 1
     if param_study == 1:
-        epsilons = [10, 20]
-        alphas = [1e-6, 1e-4]
+        epsilons = [5, 10, 15, 20]
+        alphas = [1e-6, 1e-4, 1e-2, 1e-1]
         for eps in epsilons:
             for alpha in alphas:
                 rbf_interpolate_velocity_magnitude(all_results, epsilon=eps, alpha=alpha)
