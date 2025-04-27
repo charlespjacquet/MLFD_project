@@ -181,7 +181,7 @@ def rbf_interpolate_velocity_magnitude(all_results, epsilon=20.0, alpha=1e-6, n_
     epsilon : float, optional
         Shape parameter of the Gaussian RBF. Default is 20.0.
     alpha : float, optional
-        Regularization parameter. Default is 1e-6.
+        Penalization parameter. Default is 1e-6.
     n_grid : int, optional
         Grid resolution for interpolation. Default is 200.
     subsample_step : int, optional
@@ -268,7 +268,7 @@ def rbf_interpolate_vorticity(all_results, epsilon=20.0, alpha=1e-6, n_grid=200,
     epsilon : float, optional
         Shape parameter of the Gaussian RBF. Default is 20.0.
     alpha : float, optional
-        Regularization parameter. Default is 1e-6.
+        Penalization parameter. Default is 1e-6.
     n_grid : int, optional
         Grid resolution for interpolation. Default is 200.
     subsample_step : int, optional
