@@ -192,6 +192,8 @@ def rbf_interpolate_velocity_magnitude(all_results, epsilon=20.0, alpha=1e-6, n_
     None
     """
     print("--- RBF Interpolation: Velocity Magnitude ---")
+
+    # Flatten all data
     x_all, y_all, u_all, v_all = [], [], [], []
     for result in all_results.values():
         x_all.append(result['x'].flatten())
@@ -199,49 +201,60 @@ def rbf_interpolate_velocity_magnitude(all_results, epsilon=20.0, alpha=1e-6, n_
         u_all.append(result['Umean'].flatten())
         v_all.append(result['Vmean'].flatten())
 
+    # Stack into single vectors
     x_all = np.concatenate(x_all)
     y_all = np.concatenate(y_all)
     u_all = np.concatenate(u_all)
     v_all = np.concatenate(v_all)
 
+    # Normalize coordinates to [-1,1]
     x_min, x_max = x_all.min(), x_all.max()
     y_min, y_max = y_all.min(), y_all.max()
     x_norm = 2 * (x_all - x_min) / (x_max - x_min) - 1
     y_norm = 2 * (y_all - y_min) / (y_max - y_min) - 1
 
+    # Subsample RBF centers
     idx = np.arange(0, len(x_norm), subsample_step)
     xc, yc = x_norm[idx], y_norm[idx]
 
+    # Build the RBF interpolation matrix
     Phi = np.zeros((len(x_norm), len(xc)))
     for i in tqdm(range(len(xc)), desc="Building RBF matrix"):
         Phi[:, i] = rbf_2d_gaussian(x_norm, y_norm, xc[i], yc[i], epsilon)
 
+    # Solve for RBF weights (Tikhonov regularization)
     wu = np.linalg.solve(Phi.T @ Phi + alpha * np.eye(len(xc)), Phi.T @ u_all)
     wv = np.linalg.solve(Phi.T @ Phi + alpha * np.eye(len(xc)), Phi.T @ v_all)
 
+    # Define grid for evaluation
     xi = np.linspace(-1, 1, n_grid)
     yi = np.linspace(-1, 1, n_grid)
     XI, YI = np.meshgrid(xi, yi)
     Xg, Yg = XI.flatten(), YI.flatten()
 
+    # Interpolate U and V
     U_interp = np.zeros(len(Xg))
     V_interp = np.zeros(len(Xg))
     for i in tqdm(range(len(xc)), desc="Interpolating velocity"):
         U_interp += wu[i] * rbf_2d_gaussian(Xg, Yg, xc[i], yc[i], epsilon)
         V_interp += wv[i] * rbf_2d_gaussian(Xg, Yg, xc[i], yc[i], epsilon)
 
+    # Compute magnitude field
     MAG_interp_grid = np.sqrt(U_interp**2 + V_interp**2).reshape(XI.shape)
+
+    # Convert back to physical coordinates
     XI_phys = 0.5 * (XI + 1) * (x_max - x_min) + x_min
     YI_phys = 0.5 * (YI + 1) * (y_max - y_min) + y_min
-    
-    # PIV calibration data
-    x_origin = 150 #[mm]
-    y_origin = 57 #[mm]
-    z_hub = 160 #[mm]
-    D = 150 # [mm]
+
+    # Apply PIV calibration
+    x_origin = 150
+    y_origin = 57
+    z_hub = 160
+    D = 150
     XI_corr = (XI_phys + x_origin) / D
     YI_corr = (y_origin + (y_max - YI_phys)) / z_hub
 
+    # Plot and save
     plt.figure(figsize=(8, 6))
     plt.contourf(XI_corr, YI_corr, MAG_interp_grid / np.max(MAG_interp_grid), 100, cmap='jet')
     plt.colorbar(label=r"$U/\bar{U}_{hub}$ [-]")
@@ -278,61 +291,73 @@ def rbf_interpolate_vorticity(all_results, epsilon=20.0, alpha=1e-6, n_grid=200,
     -------
     None
     """
-    print("--- RBF Interpolation: Vorticity ---")
+    # Flatten all data from all cases into single arrays
     x_all, y_all, u_all, v_all = [], [], [], []
     for result in all_results.values():
         x_all.append(result['x'].flatten())
         y_all.append(result['y'].flatten())
         u_all.append(result['Umean'].flatten())
         v_all.append(result['Vmean'].flatten())
-
+    
+    # Concatenate all the cases into unified 1D vectors
     x_all = np.concatenate(x_all)
     y_all = np.concatenate(y_all)
     u_all = np.concatenate(u_all)
     v_all = np.concatenate(v_all)
-
+    
+    # Normalize coordinates into [-1, 1] for numerical stability
     x_min, x_max = x_all.min(), x_all.max()
     y_min, y_max = y_all.min(), y_all.max()
     x_norm = 2 * (x_all - x_min) / (x_max - x_min) - 1
     y_norm = 2 * (y_all - y_min) / (y_max - y_min) - 1
-
+    
+    # Subsample points to choose RBF centers
     idx = np.arange(0, len(x_norm), subsample_step)
     xc, yc = x_norm[idx], y_norm[idx]
-
+    
+    # Build interpolation matrix Phi using the Gaussian RBFs
     Phi = np.zeros((len(x_norm), len(xc)))
     for i in tqdm(range(len(xc)), desc="Building RBF matrix"):
         Phi[:, i] = rbf_2d_gaussian(x_norm, y_norm, xc[i], yc[i], epsilon)
-
+    
+    # Solve regularized least squares to find RBF weights for u and v
     wu = np.linalg.solve(Phi.T @ Phi + alpha * np.eye(len(xc)), Phi.T @ u_all)
     wv = np.linalg.solve(Phi.T @ Phi + alpha * np.eye(len(xc)), Phi.T @ v_all)
-
+    
+    # Generate a regular grid for interpolation
     xi = np.linspace(-1, 1, n_grid)
     yi = np.linspace(-1, 1, n_grid)
     XI, YI = np.meshgrid(xi, yi)
     Xg, Yg = XI.flatten(), YI.flatten()
-
+    
+    # Compute the derivatives of interpolated fields at the new grid points
     dVdx = np.zeros(len(Xg))
     dUdy = np.zeros(len(Xg))
     for i in tqdm(range(len(xc)), desc="Computing derivatives"):
         dVdx += wu[i] * drbf_dy(Xg, Yg, xc[i], yc[i], epsilon)
         dUdy += wv[i] * drbf_dx(Xg, Yg, xc[i], yc[i], epsilon)
+    
+    # Calculate vorticity as the curl: ∂V/∂x - ∂U/∂y
     vorticity_interp = dVdx - dUdy
     VORT_interp_grid = vorticity_interp.reshape(XI.shape)
-
+    
+    # Reverse normalization to get physical coordinates
     XI_phys = 0.5 * (XI + 1) * (x_max - x_min) + x_min
     YI_phys = 0.5 * (YI + 1) * (y_max - y_min) + y_min
-
-    # PIV calibration data
-    x_origin = 150  #[mm]
-    y_origin = 57 #[mm]
-    z_hub = 160 #[mm]
-    D = 150 #[mm]
+    
+    # PIV calibration: translate to experimental reference frame
+    x_origin = 150  # [mm]
+    y_origin = 57   # [mm]
+    z_hub = 160     # [mm]
+    D = 150         # [mm]
     XI_corr = (XI_phys + x_origin) / D
     YI_corr = (y_origin + (y_max - YI_phys)) / z_hub
-
-    U_hub = 9.2  # velocity at hub
-    VORT_interp_grid_normalized = (VORT_interp_grid * D*1e-3) / U_hub
-
+    
+    # Normalize vorticity to get dimensionless quantity ω* = ω D / U_hub
+    U_hub = 9.2  # Reference velocity [m/s]
+    VORT_interp_grid_normalized = (VORT_interp_grid * D * 1e-3) / U_hub
+    
+    # Plot and save the vorticity field
     plt.figure(figsize=(8, 6))
     plt.contourf(XI_corr, YI_corr, VORT_interp_grid_normalized, 100, cmap='seismic')
     cbar = plt.colorbar(label=r"$\omega^* = \omega D/\bar{U}_{hub}$ [-]")
@@ -352,9 +377,9 @@ if __name__ == "__main__":
 
     all_results = process_selected_cases(folder_list)
     rbf_interpolate_velocity_magnitude(all_results, epsilon=10, alpha=0.01)
-    rbf_interpolate_vorticity(all_results, epsilon=10, alpha=0.01)
+    rbf_interpolate_vorticity(all_results, epsilon=10, alpha=1)
 
-    param_study = 1
+    param_study = 0
     if param_study == 1:
         epsilons = [5, 10, 15, 20]
         alphas = [1e-6, 1e-4, 1e-2, 1e-1]
